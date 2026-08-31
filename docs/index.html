@@ -129,9 +129,9 @@
       style:
         "https://raw.githubusercontent.com/mayuge/OpenSourceStyle/refs/heads/main/style.json",
 
-      center: [137.0, 38.5],
-
-      zoom: 5
+      center: [139.76667, 35.68111],
+      zoom: 10,
+      hash:true,
     });
 
 
@@ -282,10 +282,11 @@
             type: "circle",
 
             source: "stations",
+            minzoom: 10,
 
             paint: {
 
-              "circle-radius": 4,
+              "circle-radius": 2,
 
               "circle-color": "#ff0000",
 
@@ -337,7 +338,7 @@
 
               "fill-color": "#ff0000",
 
-              "fill-opacity": 0.25
+              "fill-opacity": 0.1
 
             }
 
