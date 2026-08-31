@@ -419,22 +419,32 @@
 
 
           map.addLayer({
-
             id: "walking-area-fill",
-
             type: "fill",
-
             source: "walking-area",
-
             paint: {
-
               "fill-color": "#ff0000",
-
               "fill-opacity": 0.1
-
-            }
-
+            },
           });
+
+          map.addLayer({
+            id:"label",
+            type:"symbol",
+            source:"stations",
+            layout:{
+              "text-field":["get","駅名"],
+              "text-size":10,
+              "text-anchor":"top",
+              "text-offset":[0,0],
+              "text-allow-overlap": false,
+            },
+            paint: {
+              "text-color": "#505050",
+              "text-halo-color": "#ffffff",
+              "text-halo-width": 1,
+            },
+          })
 
 
           addHoverPopup("walking-area-fill");
