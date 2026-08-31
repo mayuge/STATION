@@ -274,33 +274,6 @@
             }
           );
 
-
-          map.addLayer({
-
-            id: "stations",
-
-            type: "circle",
-
-            source: "stations",
-            minzoom: 10,
-
-            paint: {
-
-              "circle-radius": 3,
-
-              "circle-color": "#ff0000",
-
-              "circle-opacity": 0.6,
-
-              "circle-stroke-color": "#ffffff",
-
-              "circle-stroke-width": 1
-
-            }
-
-          });
-
-
           /*
            * ----------------------------------------
            * 徒歩圏
@@ -344,22 +317,6 @@
 
           });
 
-
-          map.addLayer({
-
-            id: "walking-area-line",
-
-            type: "line",
-
-            source: "walking-area",
-
-            paint: {
-              "line-color": "#ff0000",
-              "line-opacity":0.5,
-              "line-width": 0.5
-            }
-
-          });
         });
       })
 
