@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -6,6 +7,7 @@
 
   <title>駅徒歩圏</title>
 
+  <!-- MapLibre -->
   <link
     href="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.css"
     rel="stylesheet"
@@ -31,13 +33,13 @@
       left: 20px;
       z-index: 10;
 
-      background: white;
+      width: 260px;
       padding: 16px 20px;
+
+      background: white;
       border-radius: 8px;
 
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-
-      width: 260px;
     }
 
     #time {
@@ -60,11 +62,13 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
       z-index: 20;
 
-      background: white;
+      transform: translate(-50%, -50%);
+
       padding: 12px 20px;
+
+      background: white;
       border-radius: 6px;
 
       box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -74,13 +78,22 @@
 
 <body>
 
+  <!-- Loading -->
   <div id="loading">
     駅データを読み込み中...
   </div>
 
+
+  <!-- Control -->
   <div id="control">
-    <div id="time">駅から徒歩 10 分</div>
-    <div id="distance">約 800 m</div>
+
+    <div id="time">
+      駅から徒歩 10 分
+    </div>
+
+    <div id="distance">
+      約 800 m
+    </div>
 
     <input
       id="slider"
@@ -90,28 +103,75 @@
       value="10"
       step="1"
     />
+
   </div>
 
+
+  <!-- Map -->
   <div id="map"></div>
 
+
+  <!-- MapLibre -->
   <script src="https://unpkg.com/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
 
+
+  <!-- Turf -->
   <script src="https://unpkg.com/@turf/turf@7.2.0/turf.min.js"></script>
 
+
   <script>
+
+    /*
+     * ========================================
+     * 設定
+     * ========================================
+     */
+
+    // 徒歩速度
+    // 80m / 分
     const WALKING_SPEED = 80;
+
+
+    // 駅GeoJSON
+    const STATION_GEOJSON =
+      "./unkohonsu2026_rosen_eki.geojson";
+
+
+    /*
+     * ========================================
+     * 状態
+     * ========================================
+     */
 
     let stationGeoJSON = null;
 
+
+    /*
+     * ========================================
+     * MapLibre
+     * ========================================
+     */
+
     const map = new maplibregl.Map({
+
       container: "map",
 
       style:
         "https://tile.openstreetmap.jp/styles/osm-bright-ja/style.json",
 
-      center: [137.0, 38.5],
+      center: [
+        137.0,
+        38.5
+      ],
+
       zoom: 5
+
     });
+
+
+    /*
+     * Navigation
+     */
 
     map.addControl(
       new maplibregl.NavigationControl(),
@@ -120,55 +180,83 @@
 
 
     /*
+     * ========================================
      * GeoJSON読み込み
+     * ========================================
      */
-    fetch("./unkohonsu2026_rosen_eki.geojson")
+
+    fetch(STATION_GEOJSON)
+
       .then(response => {
 
         if (!response.ok) {
+
           throw new Error(
             `GeoJSON読み込み失敗: ${response.status}`
           );
+
         }
 
         return response.json();
+
       })
+
       .then(data => {
 
         /*
-         * Pointだけ抽出
+         * Pointだけを抽出
+         *
+         * 元データのFeatureをそのまま使わず、
+         * Turf.point()で新しいPoint Featureを作る。
          */
+
         const pointFeatures =
-          data.features.filter(feature => {
+          data.features
 
-            return (
-              feature.geometry &&
-              feature.geometry.type === "Point"
-            );
+            .filter(feature => {
 
-          });
+              return (
+                feature.geometry &&
+                feature.geometry.type === "Point" &&
+                Array.isArray(
+                  feature.geometry.coordinates
+                )
+              );
+
+            })
+
+            .map(feature => {
+
+              return turf.point(
+                feature.geometry.coordinates,
+                feature.properties || {}
+              );
+
+            });
 
 
         /*
-         * PointだけのFeatureCollectionを作る
+         * PointだけのGeoJSON
          */
+
         stationGeoJSON = {
+
           type: "FeatureCollection",
+
           features: pointFeatures
+
         };
 
 
         console.log(
-          `駅データ: ${pointFeatures.length}件`
+          "駅数:",
+          stationGeoJSON.features.length
         );
 
 
-        if (pointFeatures.length === 0) {
-          throw new Error(
-            "Point geometryの駅データがありません"
-          );
-        }
-
+        /*
+         * Loading終了
+         */
 
         document.getElementById(
           "loading"
@@ -176,20 +264,28 @@
 
 
         /*
-         * MapLibre
+         * Mapのloadを待つ
          */
+
         map.on("load", () => {
 
           /*
+           * ==================================
            * 駅
+           * ==================================
            */
-          map.addSource("stations", {
-            type: "geojson",
-            data: stationGeoJSON
-          });
+
+          map.addSource(
+            "stations",
+            {
+              type: "geojson",
+              data: stationGeoJSON
+            }
+          );
 
 
           map.addLayer({
+
             id: "stations",
 
             type: "circle",
@@ -204,98 +300,150 @@
 
               "circle-opacity": 0.7,
 
-              "circle-stroke-color": "#ffffff",
+              "circle-stroke-color":
+                "#ffffff",
 
               "circle-stroke-width": 1
 
             }
+
           });
 
 
           /*
-           * 初期徒歩圏
+           * ==================================
+           * 徒歩圏
+           * ==================================
            */
+
           const initialArea =
             createWalkingArea(10);
 
 
-          map.addSource("walking-area", {
-            type: "geojson",
-            data: initialArea
-          });
+          map.addSource(
+            "walking-area",
+            {
+              type: "geojson",
+              data: initialArea
+            }
+          );
 
+
+          /*
+           * 塗り
+           */
 
           map.addLayer({
-            id: "walking-area-fill",
+
+            id:
+              "walking-area-fill",
 
             type: "fill",
 
-            source: "walking-area",
+            source:
+              "walking-area",
 
             paint: {
 
-              "fill-color": "#3388ff",
+              "fill-color":
+                "#3388ff",
 
-              "fill-opacity": 0.25
-
-            }
-          });
-
-
-          map.addLayer({
-            id: "walking-area-line",
-
-            type: "line",
-
-            source: "walking-area",
-
-            paint: {
-
-              "line-color": "#3388ff",
-
-              "line-width": 2
+              "fill-opacity":
+                0.25
 
             }
+
           });
 
 
           /*
-           * 駅データ全体にフィット
+           * 境界線
            */
+
+          map.addLayer({
+
+            id:
+              "walking-area-line",
+
+            type: "line",
+
+            source:
+              "walking-area",
+
+            paint: {
+
+              "line-color":
+                "#3388ff",
+
+              "line-width":
+                2
+
+            }
+
+          });
+
+
+          /*
+           * ==================================
+           * 駅全体にフィット
+           * ==================================
+           */
+
           const bbox =
             turf.bbox(stationGeoJSON);
 
 
           map.fitBounds(
+
             [
-              [bbox[0], bbox[1]],
-              [bbox[2], bbox[3]]
+
+              [
+                bbox[0],
+                bbox[1]
+              ],
+
+              [
+                bbox[2],
+                bbox[3]
+              ]
+
             ],
+
             {
+
               padding: 50,
 
               duration: 1000
+
             }
+
           );
 
         });
 
       })
+
       .catch(error => {
 
         console.error(error);
 
-        document.getElementById(
-          "loading"
-        ).textContent =
+        const loading =
+          document.getElementById(
+            "loading"
+          );
+
+        loading.textContent =
           "駅データの読み込みに失敗しました";
 
       });
 
 
     /*
-     * 徒歩圏生成
+     * ========================================
+     * 徒歩圏を作る
+     * ========================================
      */
+
     function createWalkingArea(minutes) {
 
       const distance =
@@ -304,43 +452,59 @@
 
       const buffers =
         stationGeoJSON.features
+
           .map(station => {
 
             return turf.buffer(
+
               station,
 
               distance,
 
               {
+
                 units: "meters",
 
                 steps: 16
+
               }
+
             );
 
           })
+
           .filter(Boolean);
 
 
       return turf.featureCollection(
         buffers
       );
+
     }
 
 
     /*
+     * ========================================
      * スライダー
+     * ========================================
      */
+
     const slider =
-      document.getElementById("slider");
+      document.getElementById(
+        "slider"
+      );
 
 
     const timeLabel =
-      document.getElementById("time");
+      document.getElementById(
+        "time"
+      );
 
 
     const distanceLabel =
-      document.getElementById("distance");
+      document.getElementById(
+        "distance"
+      );
 
 
     slider.addEventListener(
@@ -348,16 +512,20 @@
       () => {
 
         const minutes =
-          Number(slider.value);
+          Number(
+            slider.value
+          );
 
 
         const distance =
-          minutes * WALKING_SPEED;
+          minutes *
+          WALKING_SPEED;
 
 
         /*
-         * UI
+         * 表示更新
          */
+
         timeLabel.textContent =
           `駅から徒歩 ${minutes} 分`;
 
@@ -367,31 +535,41 @@
 
 
         /*
-         * Turf
+         * GeoJSON更新
          */
+
         if (
           !stationGeoJSON ||
-          !map.getSource("walking-area")
+          !map.getSource(
+            "walking-area"
+          )
         ) {
+
           return;
+
         }
 
 
         const area =
-          createWalkingArea(minutes);
+          createWalkingArea(
+            minutes
+          );
 
 
-        /*
-         * MapLibre
-         */
         map
-          .getSource("walking-area")
-          .setData(area);
+          .getSource(
+            "walking-area"
+          )
+          .setData(
+            area
+          );
 
       }
+
     );
+
   </script>
 
 </body>
 </html>
-
+```
