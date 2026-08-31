@@ -362,44 +362,7 @@
             }
 
           });
-
-
-          /*
-           * ----------------------------------------
-           * 駅全体にフィット
-           * ----------------------------------------
-           */
-
-          const bbox =
-            turf.bbox(stationGeoJSON);
-
-
-          console.log(
-            "駅bbox:",
-            bbox
-          );
-
-
-          map.fitBounds(
-
-            [
-              [bbox[0], bbox[1]],
-
-              [bbox[2], bbox[3]]
-            ],
-
-            {
-
-              padding: 50,
-
-              duration: 1000
-
-            }
-
-          );
-
         });
-
       })
 
 
