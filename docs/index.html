@@ -317,6 +317,72 @@
 
           });
 
+
+  /*
+   * 駅ホバー
+   */
+  const popup = new maplibregl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    offset: 10
+  });
+
+
+  map.on("mouseenter", "stations", (event) => {
+
+    map.getCanvas().style.cursor = "pointer";
+
+    const feature = event.features[0];
+
+    if (!feature) {
+      return;
+    }
+
+    const rows = Object.entries(feature.properties)
+      .map(([key, value]) => `
+        <div style="
+          display: grid;
+          grid-template-columns: 100px 1fr;
+          gap: 8px;
+          padding: 4px 0;
+          border-bottom: 1px solid #000;
+        ">
+          <div style="font-weight: bold;">
+            ${key}
+          </div>
+
+          <div>
+            ${value ?? ""}
+          </div>
+        </div>
+      `)
+      .join("");
+
+
+    popup
+      .setLngLat(event.lngLat)
+      .setHTML(`
+        <div style="
+          min-width: 260px;
+          max-width: 400px;
+          font-size: 13px;
+        ">
+          ${rows}
+        </div>
+      `)
+      .addTo(map);
+
+  });
+
+
+  map.on("mouseleave", "stations", () => {
+
+    map.getCanvas().style.cursor = "";
+
+    popup.remove();
+
+  });
+
         });
       })
 
